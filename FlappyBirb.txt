@@ -1,0 +1,135 @@
+'''
+Created on Jul 6, 2019
+
+@author: Pierr
+'''
+import random
+
+
+class Column:
+    def __init__(self, height=32):
+        self.column_array = [' '] * height
+
+    def get_block(self, i):
+        return self.column_array[i]
+
+
+class Pipe(Column):
+    def __init__(self, height=32, hole=8):
+        self.column_array = ['|'] * height
+        hole_position = random.randint(0, height - hole)
+        for i in range(hole_position, hole_position + hole):
+            self.column_array[i] = ' '
+        if hole_position >= 0:
+            self.column_array[hole_position] = '-'
+        if hole_position+hole < height:
+            self.column_array[hole_position+hole] = '-'
+
+
+class Field:
+    def __init__(self, spacing=8, distance=64, height=32, hole=8):
+        self.grid = []
+        self.grid.append(Column())
+        for i in range(1, distance):
+            if i % spacing == 0:
+                self.grid.append(Pipe(height, hole))
+            else:
+                self.grid.append(Column(height))
+    
+    def append(self, column):
+        self.grid.append(column)
+    
+    def get_block(self, i, j):
+        return self.grid[j].get_block(i)
+
+
+class Birb:
+    # Jump Force (lol) is the initial acceleration flappy gets when jump key is pressed.
+    # Gravity is the level of deceleration in the birb each turn, causing a change in velocity
+    # velocity measures the change in distance with each unit of time
+    # special increases the effect of jump force. Currently disabled by setting to 1
+    def __init__(self, pos=15, jump_force=-4, gravity=2, special=1):
+        self.distance = 0
+        self.height = pos
+        self.velocity = 0
+        self.acceleration = gravity
+        self.jump_force = jump_force
+        self.power = special
+
+    # adds a kick of speed to flappy. Since it does not conform with the laws of physics,
+    # flappy's psionic power increases his velocity upwards until it is equivalent to jump force.
+    # note that acceleration is flappy's *****.
+    def jump(self):
+        self.velocity = self.jump_force
+
+    def jump_pow(self):
+        self.velocity = self.jump_force * self.power
+
+    #each tick of time requests a jump confirmation and then changes flappy's position.
+    def tick(self, action):
+        self.distance += 1
+        self.velocity = self.velocity + self.acceleration
+        if 'j' in action or 'J' in action:
+            if 'd' in action or 'D' in action:
+                self.jump_pow()
+            else:
+                self.jump()
+        self.height = self.height + self.velocity
+        print('Height = ', self.height, ', Velocity =', self.velocity, ', Acceleration = ', self.acceleration)
+
+    def get_position(self):
+        return self.height
+
+    def get_distance(self):
+        return self.distance
+
+
+class Flappy_Birb:
+    def __init__(self, endless=False, spacing=8, distance=64, height=32, hole=8, pos=15, jump_force=-4, gravity=2, special=1):
+        self.endless = endless
+        self.spacing = spacing
+        self.distance = distance
+        self.height = height
+        self.hole = hole
+        self.birb = Birb(pos, jump_force, gravity, special)
+        self.field = Field(spacing, distance, height, hole)
+        
+
+    def print(self):
+        y = 0
+        if self.endless:
+            y = self.birb.get_distance()
+        for i in range(self.height):
+            for j in range(y, y+self.distance):
+                if j == self.birb.get_distance() and i == self.birb.get_position():
+                    print('B', end='')
+                else:
+                    print(self.field.get_block(i,j), end='')
+            print()
+
+
+    def play_game(self):
+        d = self.distance
+        self.print()
+        print("Jump, Double Jump, or Pass: ")
+        while True:
+            self.birb.tick(input())
+            if self.endless:
+                if d % self.spacing == 0:
+                    self.field.append(Pipe(self.height, self.hole))
+                else:
+                    self.field.append(Column(self.height))
+                d += 1
+            self.print()
+            if not self.endless and self.birb.get_distance() >= self.distance:
+                print("You Win!")
+                break
+            if self.birb.get_position() < 0 or self.birb.get_position() >= self.height \
+                    or self.field.get_block(self.birb.get_position(), self.birb.get_distance()) != ' ':
+                print("Game Over.")
+                break
+
+            print("Jump, Double Jump, or Pass: ")
+
+F = Flappy_Birb(True)
+F.play_game()
